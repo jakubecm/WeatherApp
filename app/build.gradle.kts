@@ -4,6 +4,16 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Loading API key from local.properties
+import java.util.Properties
+import java.io.FileInputStream
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
+}
+
 android {
     namespace = "com.example.weatherapp"
     compileSdk {
@@ -18,6 +28,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        // API key as BuildConfig field
+        buildConfigField("String", "OPENWEATHERMAP_API_KEY", "\"${localProperties.getProperty("OPENWEATHERMAP_API_KEY", "")}\"")
     }
 
     buildTypes {
@@ -38,6 +51,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -51,19 +65,29 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     
-    // DataStore pro ukládání preferences
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    // DataStore
+    implementation(libs.androidx.datastore.preferences)
     
-    // Google Play Services Location pro geolokaci
-    implementation("com.google.android.gms:play-services-location:21.0.1")
+    // Location Services
+    implementation(libs.play.services.location)
     
-    // ViewModel a Coroutines
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+    // Lifecycle & Coroutines
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.play.services)
     
-    // Material Icons Extended - rozšířená sada ikon
-    implementation("androidx.compose.material:material-icons-extended:1.6.0")
+    // Material Icons Extended
+    implementation(libs.androidx.compose.material.icons.extended)
+    
+    // Retrofit & Networking
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.moshi)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging.interceptor)
+    
+    // Moshi
+    implementation(libs.moshi)
+    implementation(libs.moshi.kotlin)
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

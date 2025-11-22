@@ -1,0 +1,7 @@
+# Copy this file as local.properties and paste your own API key there
+
+sdk.dir=CESTA_K_ANDROID_SDK
+
+# OpenWeatherMap API Key
+# Get at: https://openweathermap.org/api
+OPENWEATHERMAP_API_KEY=your_api_key_here

@@ -9,41 +9,109 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.weatherapp.data.HomeLocation
 import com.example.weatherapp.ui.components.HourlyForecastCard
 import com.example.weatherapp.ui.components.WeatherDetailItem
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.math.roundToInt
 
 @Composable
 fun HomeScreen(
     homeLocation: HomeLocation,
+    modifier: Modifier = Modifier,
+    viewModel: HomeViewModel = viewModel()
+) {
+    val weatherData = viewModel.weatherData
+    val isLoading = viewModel.isLoading
+    val isRefreshing = viewModel.isRefreshing
+    val errorMessage = viewModel.errorMessage
+    
+    // Načtení dat při prvním zobrazení
+    LaunchedEffect(homeLocation) {
+        if (weatherData == null && !isLoading) {
+            viewModel.loadWeather(homeLocation)
+        }
+    }
+    
+    Box(modifier = modifier.fillMaxSize()) {
+        when {
+            isLoading && weatherData == null -> {
+                // Zobrazení načítání při prvním načtení
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+            errorMessage != null && weatherData == null -> {
+                // Zobrazení chyby když nejsou data
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.loadWeather(homeLocation) }) {
+                            Text("Zkusit znovu")
+                        }
+                    }
+                }
+            }
+            weatherData != null -> {
+                WeatherContent(
+                    weatherData = weatherData,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+        
+        // FAB pro refresh
+        FloatingActionButton(
+            onClick = { viewModel.refreshWeather(homeLocation) },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            if (isRefreshing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Obnovit počasí"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeatherContent(
+    weatherData: com.example.weatherapp.data.model.WeatherData,
     modifier: Modifier = Modifier
 ) {
-    // Mock data - later replaced with real data from API
-    val mockTemperature = 15
-    val mockDescription = "Polojasno"
-    val mockFeelsLike = 13
-    val mockHumidity = 65
-    val mockWindSpeed = 12
-    val mockPressure = 1013
-    val mockVisibility = 10
-    
-    val mockHourlyData = listOf(
-        Triple("Nyní", "15°", "☀️"),
-        Triple("14:00", "16°", "⛅"),
-        Triple("15:00", "17°", "⛅"),
-        Triple("16:00", "16°", "☁️"),
-        Triple("17:00", "15°", "☁️"),
-        Triple("18:00", "14°", "🌧️")
-    )
-    
     Surface(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier,
         color = MaterialTheme.colorScheme.background
     ) {
         Column(
@@ -54,7 +122,7 @@ fun HomeScreen(
         ) {
             // Header - Location
             Text(
-                text = homeLocation.name,
+                text = weatherData.location.name,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
@@ -62,8 +130,10 @@ fun HomeScreen(
             
             Spacer(modifier = Modifier.height(4.dp))
             
+            val updateTime = SimpleDateFormat("HH:mm", Locale.getDefault())
+                .format(Date(weatherData.current.timestamp * 1000))
             Text(
-                text = "Aktualizováno právě teď",
+                text = "Aktualizováno v $updateTime",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -78,14 +148,14 @@ fun HomeScreen(
             ) {
                 Column {
                     Text(
-                        text = "$mockTemperature°C",
+                        text = "${weatherData.current.temperature.roundToInt()}°C",
                         fontSize = 72.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     
                     Text(
-                        text = mockDescription,
+                        text = weatherData.current.description,
                         fontSize = 20.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -93,15 +163,15 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     Text(
-                        text = "Pocitově $mockFeelsLike°C",
+                        text = "Pocitově ${weatherData.current.feelsLike.roundToInt()}°C",
                         fontSize = 16.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 
-                // Weather icon - placeholder
+                // Weather icon - placeholder (můžeme později nahradit skutečnou ikonou)
                 Text(
-                    text = "⛅",
+                    text = getWeatherEmoji(weatherData.current.icon),
                     fontSize = 80.sp
                 )
             }
@@ -121,11 +191,14 @@ fun HomeScreen(
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(mockHourlyData) { (time, temp, icon) ->
+                items(weatherData.hourly.take(12)) { hourly ->
+                    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+                    val time = timeFormat.format(Date(hourly.timestamp * 1000))
+                    
                     HourlyForecastCard(
                         time = time,
-                        temperature = temp,
-                        icon = icon
+                        temperature = "${hourly.temperature.roundToInt()}°",
+                        icon = getWeatherEmoji(hourly.icon)
                     )
                 }
             }
@@ -148,7 +221,7 @@ fun HomeScreen(
             ) {
                 WeatherDetailItem(
                     label = "Vlhkost",
-                    value = "$mockHumidity%",
+                    value = "${weatherData.current.humidity}%",
                     icon = {
                         Icon(
                             imageVector = Icons.Outlined.WaterDrop,
@@ -162,7 +235,7 @@ fun HomeScreen(
                 
                 WeatherDetailItem(
                     label = "Vítr",
-                    value = "$mockWindSpeed km/h",
+                    value = "${weatherData.current.windSpeed.roundToInt()} km/h",
                     icon = {
                         Icon(
                             imageVector = Icons.Outlined.Air,
@@ -183,7 +256,7 @@ fun HomeScreen(
             ) {
                 WeatherDetailItem(
                     label = "Tlak",
-                    value = "$mockPressure hPa",
+                    value = "${weatherData.current.pressure} hPa",
                     icon = {
                         Icon(
                             imageVector = Icons.Outlined.Compress,
@@ -197,7 +270,7 @@ fun HomeScreen(
                 
                 WeatherDetailItem(
                     label = "Viditelnost",
-                    value = "$mockVisibility km",
+                    value = "${weatherData.current.visibility} km",
                     icon = {
                         Icon(
                             imageVector = Icons.Outlined.Visibility,
@@ -212,5 +285,20 @@ fun HomeScreen(
             
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
+}
+
+private fun getWeatherEmoji(icon: String): String {
+    return when {
+        icon.startsWith("01") -> "☀️" // clear sky
+        icon.startsWith("02") -> "⛅" // few clouds
+        icon.startsWith("03") -> "☁️" // scattered clouds
+        icon.startsWith("04") -> "☁️" // broken clouds
+        icon.startsWith("09") -> "🌧️" // shower rain
+        icon.startsWith("10") -> "🌦️" // rain
+        icon.startsWith("11") -> "⛈️" // thunderstorm
+        icon.startsWith("13") -> "❄️" // snow
+        icon.startsWith("50") -> "🌫️" // mist
+        else -> "🌤️"
     }
 }
