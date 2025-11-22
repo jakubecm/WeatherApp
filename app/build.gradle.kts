@@ -50,6 +50,18 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    
+    // DataStore pro ukládání preferences
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    
+    // Google Play Services Location pro geolokaci
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+    
+    // ViewModel a Coroutines
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
