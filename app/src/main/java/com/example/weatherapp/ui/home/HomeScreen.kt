@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.weatherapp.data.HomeLocation
 import com.example.weatherapp.ui.components.HourlyForecastCard
+import com.example.weatherapp.ui.components.LocationSearchBar
 import com.example.weatherapp.ui.components.WeatherDetailItem
 import java.text.SimpleDateFormat
 import java.util.*
@@ -29,14 +30,37 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     homeLocation: HomeLocation,
     onRefreshRequested: () -> Unit,
+    onLocationSelected: (Double, Double, String) -> Unit,
+    onCurrentLocationClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val weatherData = viewModel.weatherData
     val isLoading = viewModel.isLoading
     val isRefreshing = viewModel.isRefreshing
     val errorMessage = viewModel.errorMessage
+    val searchQuery = viewModel.searchQuery
+    val searchResults = viewModel.searchResults
+    val isSearching = viewModel.isSearching
     
-    Box(modifier = modifier.fillMaxSize()) {
+    Column(modifier = modifier.fillMaxSize()) {
+        // Search bar at the top
+        LocationSearchBar(
+            searchQuery = searchQuery,
+            onSearchQueryChange = { viewModel.updateSearchQuery(it) },
+            searchResults = searchResults,
+            onLocationSelected = { result ->
+                onLocationSelected(result.latitude, result.longitude, result.cityName)
+                viewModel.clearSearch()
+            },
+            onCurrentLocationClick = onCurrentLocationClick,
+            isSearching = isSearching,
+            modifier = Modifier
+                .fillMaxWidth()
+                .systemBarsPadding()
+        )
+        
+        // Weather content
+        Box(modifier = Modifier.fillMaxSize()) {
         when {
             isLoading && weatherData == null -> {
                 // Zobrazení načítání při prvním načtení
@@ -75,10 +99,11 @@ fun HomeScreen(
                     onRefresh = onRefreshRequested,
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    WeatherContent(
-                        weatherData = weatherData,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                        WeatherContent(
+                            weatherData = weatherData,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }
@@ -97,7 +122,6 @@ private fun WeatherContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .systemBarsPadding()
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {

@@ -21,7 +21,7 @@ class LocationHelper(private val context: Context) {
     private val fusedLocationClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)
     
-    private val geocoder: Geocoder = Geocoder(context, Locale.getDefault())
+    private val geocoder: Geocoder = Geocoder(context, Locale.forLanguageTag("cs-CZ"))
     
     fun hasLocationPermission(): Boolean {
         return ContextCompat.checkSelfPermission(
@@ -40,10 +40,16 @@ class LocationHelper(private val context: Context) {
         }
         
         return try {
-            val location = fusedLocationClient.getCurrentLocation(
-                Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+            // Zkusíme získat aktuální polohu
+            var location = fusedLocationClient.getCurrentLocation(
+                Priority.PRIORITY_HIGH_ACCURACY,
                 CancellationTokenSource().token
             ).await()
+            
+            // Pokud se nepodaří, zkusíme poslední známou polohu
+            if (location == null) {
+                location = fusedLocationClient.lastLocation.await()
+            }
             
             if (location != null) {
                 val cityName = getCityName(location.latitude, location.longitude)
@@ -53,10 +59,75 @@ class LocationHelper(private val context: Context) {
                     cityName = cityName
                 )
             } else {
-                LocationResult.Error("Nepodařilo se získat polohu")
+                LocationResult.Error("Nepodařilo se získat polohu. Zkuste zapnout GPS.")
+            }
+        } catch (e: SecurityException) {
+            LocationResult.Error("Chybí oprávnění k poloze")
+        } catch (e: Exception) {
+            LocationResult.Error("Chyba při získávání polohy: ${e.localizedMessage ?: e.message}")
+        }
+    }
+    
+    suspend fun searchLocations(query: String): List<LocationSearchResult> {
+        if (query.isBlank()) return emptyList()
+        
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                suspendCancellableCoroutine { continuation ->
+                    geocoder.getFromLocationName(query, 10) { addresses ->
+                        val results = addresses.map { address ->
+                            val cityName = address.locality ?: address.subAdminArea ?: "Neznámé místo"
+                            val adminArea = address.adminArea ?: ""
+                            val country = address.countryName ?: ""
+                            
+                            val displayName = buildString {
+                                append(cityName)
+                                if (adminArea.isNotEmpty() && adminArea != cityName) {
+                                    append(", $adminArea")
+                                }
+                                if (country.isNotEmpty()) {
+                                    append(", $country")
+                                }
+                            }
+                            
+                            LocationSearchResult(
+                                displayName = displayName,
+                                cityName = cityName,
+                                latitude = address.latitude,
+                                longitude = address.longitude
+                            )
+                        }
+                        continuation.resumeWith(Result.success(results))
+                    }
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                val addresses = geocoder.getFromLocationName(query, 10) ?: emptyList()
+                addresses.map { address ->
+                    val cityName = address.locality ?: address.subAdminArea ?: "Neznámé místo"
+                    val adminArea = address.adminArea ?: ""
+                    val country = address.countryName ?: ""
+                    
+                    val displayName = buildString {
+                        append(cityName)
+                        if (adminArea.isNotEmpty() && adminArea != cityName) {
+                            append(", $adminArea")
+                        }
+                        if (country.isNotEmpty()) {
+                            append(", $country")
+                        }
+                    }
+                    
+                    LocationSearchResult(
+                        displayName = displayName,
+                        cityName = cityName,
+                        latitude = address.latitude,
+                        longitude = address.longitude
+                    )
+                }
             }
         } catch (e: Exception) {
-            LocationResult.Error("Chyba při získávání polohy: ${e.message}")
+            emptyList()
         }
     }
     
@@ -91,11 +162,17 @@ class LocationHelper(private val context: Context) {
                 }
             }
         } catch (e: Exception) {
-            // Pokud geocoding selže, vrátíme alespoň souřadnice
             "%.4f, %.4f".format(latitude, longitude)
         }
     }
 }
+
+data class LocationSearchResult(
+    val displayName: String,
+    val cityName: String,
+    val latitude: Double,
+    val longitude: Double
+)
 
 sealed class LocationResult {
     data class Success(

@@ -21,7 +21,9 @@ import com.example.weatherapp.ui.home.HomeViewModel
 fun WeatherPagerScreen(
     viewModel: HomeViewModel,
     homeLocation: HomeLocation,
-    onRefreshRequested: () -> Unit
+    onRefreshRequested: () -> Unit,
+    onLocationSelected: (Double, Double, String) -> Unit,
+    onCurrentLocationClick: () -> Unit
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
 
@@ -34,7 +36,9 @@ fun WeatherPagerScreen(
                 0 -> HomeScreen(
                     viewModel = viewModel,
                     homeLocation = homeLocation,
-                    onRefreshRequested = onRefreshRequested
+                    onRefreshRequested = onRefreshRequested,
+                    onLocationSelected = onLocationSelected,
+                    onCurrentLocationClick = onCurrentLocationClick
                 )
                 1 -> ForecastScreen(
                     viewModel = viewModel

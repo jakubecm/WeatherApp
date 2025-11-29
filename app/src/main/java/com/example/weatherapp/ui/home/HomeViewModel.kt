@@ -1,18 +1,27 @@
 package com.example.weatherapp.ui.home
 
+import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.weatherapp.data.HomeLocation
 import com.example.weatherapp.data.model.WeatherData
 import com.example.weatherapp.data.repository.WeatherRepository
+import com.example.weatherapp.location.LocationHelper
+import com.example.weatherapp.location.LocationSearchResult
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class HomeViewModel(
+    application: Application
+) : AndroidViewModel(application) {
+    
     private val repository: WeatherRepository = WeatherRepository()
-) : ViewModel() {
+    private val locationHelper: LocationHelper = LocationHelper(application)
+    private var searchJob: Job? = null
     
     var weatherData by mutableStateOf<WeatherData?>(null)
         private set
@@ -25,6 +34,37 @@ class HomeViewModel(
     
     var isRefreshing by mutableStateOf(false)
         private set
+    
+    var searchQuery by mutableStateOf("")
+        private set
+    
+    var searchResults by mutableStateOf<List<LocationSearchResult>>(emptyList())
+        private set
+    
+    var isSearching by mutableStateOf(false)
+        private set
+    
+    fun updateSearchQuery(query: String) {
+        searchQuery = query
+        searchJob?.cancel()
+        
+        if (query.isBlank()) {
+            searchResults = emptyList()
+            return
+        }
+        
+        searchJob = viewModelScope.launch {
+            delay(500) // Debounce
+            isSearching = true
+            searchResults = locationHelper.searchLocations(query)
+            isSearching = false
+        }
+    }
+    
+    fun clearSearch() {
+        searchQuery = ""
+        searchResults = emptyList()
+    }
     
     fun loadWeather(homeLocation: HomeLocation) {
         viewModelScope.launch {
