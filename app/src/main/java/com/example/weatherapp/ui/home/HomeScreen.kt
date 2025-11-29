@@ -16,7 +16,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.weatherapp.data.HomeLocation
 import com.example.weatherapp.ui.components.HourlyForecastCard
 import com.example.weatherapp.ui.components.WeatherDetailItem
@@ -26,21 +25,15 @@ import kotlin.math.roundToInt
 
 @Composable
 fun HomeScreen(
+    viewModel: HomeViewModel,
     homeLocation: HomeLocation,
-    modifier: Modifier = Modifier,
-    viewModel: HomeViewModel = viewModel()
+    onRefreshRequested: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val weatherData = viewModel.weatherData
     val isLoading = viewModel.isLoading
     val isRefreshing = viewModel.isRefreshing
     val errorMessage = viewModel.errorMessage
-    
-    // Načtení dat při prvním zobrazení
-    LaunchedEffect(homeLocation) {
-        if (weatherData == null && !isLoading) {
-            viewModel.loadWeather(homeLocation)
-        }
-    }
     
     Box(modifier = modifier.fillMaxSize()) {
         when {
@@ -69,7 +62,7 @@ fun HomeScreen(
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadWeather(homeLocation) }) {
+                        Button(onClick = onRefreshRequested) {
                             Text("Zkusit znovu")
                         }
                     }
@@ -85,7 +78,7 @@ fun HomeScreen(
         
         // FAB pro refresh
         FloatingActionButton(
-            onClick = { viewModel.refreshWeather(homeLocation) },
+            onClick = onRefreshRequested,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
@@ -117,6 +110,7 @@ private fun WeatherContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .systemBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
@@ -283,6 +277,76 @@ private fun WeatherContent(
                 )
             }
             
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                WeatherDetailItem(
+                    label = "UV Index",
+                    value = "${weatherData.current.uvIndex.roundToInt()} (${getUVDescription(weatherData.current.uvIndex)})",
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Outlined.WbSunny,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+                
+                WeatherDetailItem(
+                    label = "Oblačnost",
+                    value = "${weatherData.current.clouds}% (${getCloudDescription(weatherData.current.clouds)})",
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Outlined.Cloud,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                WeatherDetailItem(
+                    label = "Směr větru",
+                    value = "${weatherData.current.windDirection}° (${getWindDirection(weatherData.current.windDirection)})",
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Outlined.Navigation,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+                
+                WeatherDetailItem(
+                    label = "Pocitová",
+                    value = "${weatherData.current.feelsLike.roundToInt()}°C",
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Outlined.Thermostat,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
@@ -300,5 +364,38 @@ private fun getWeatherEmoji(icon: String): String {
         icon.startsWith("13") -> "❄️" // snow
         icon.startsWith("50") -> "🌫️" // mist
         else -> "🌤️"
+    }
+}
+
+private fun getUVDescription(uv: Double): String {
+    return when {
+        uv < 3 -> "Nízký"
+        uv < 6 -> "Střední"
+        uv < 8 -> "Vysoký"
+        uv < 11 -> "Velmi vysoký"
+        else -> "Extrémní"
+    }
+}
+
+private fun getCloudDescription(clouds: Int): String {
+    return when {
+        clouds < 20 -> "Jasno"
+        clouds < 50 -> "Polojasno"
+        clouds < 80 -> "Oblačno"
+        else -> "Zataženo"
+    }
+}
+
+private fun getWindDirection(degrees: Int): String {
+    return when (degrees) {
+        in 0..22, in 338..360 -> "S"
+        in 23..67 -> "SV"
+        in 68..112 -> "V"
+        in 113..157 -> "JV"
+        in 158..202 -> "J"
+        in 203..247 -> "JZ"
+        in 248..292 -> "Z"
+        in 293..337 -> "SZ"
+        else -> "-"
     }
 }
