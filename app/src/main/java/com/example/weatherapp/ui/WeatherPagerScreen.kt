@@ -23,7 +23,8 @@ fun WeatherPagerScreen(
     homeLocation: HomeLocation,
     onRefreshRequested: () -> Unit,
     onLocationSelected: (Double, Double, String) -> Unit,
-    onCurrentLocationClick: () -> Unit
+    onCurrentLocationClick: () -> Unit,
+    onSettingsClick: () -> Unit
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
 
@@ -38,7 +39,8 @@ fun WeatherPagerScreen(
                     homeLocation = homeLocation,
                     onRefreshRequested = onRefreshRequested,
                     onLocationSelected = onLocationSelected,
-                    onCurrentLocationClick = onCurrentLocationClick
+                    onCurrentLocationClick = onCurrentLocationClick,
+                    onSettingsClick = onSettingsClick
                 )
                 1 -> ForecastScreen(
                     viewModel = viewModel

@@ -5,7 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.doublePreferencesKey
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -18,6 +18,7 @@ class PreferencesManager(private val context: Context) {
         private val HOME_LOCATION_NAME = stringPreferencesKey("home_location_name")
         private val HOME_LOCATION_LAT = stringPreferencesKey("home_location_lat")
         private val HOME_LOCATION_LON = stringPreferencesKey("home_location_lon")
+        private val DARK_MODE = booleanPreferencesKey("dark_mode")
     }
     
     val homeLocation: Flow<HomeLocation?> = context.dataStore.data.map { preferences ->
@@ -45,6 +46,16 @@ class PreferencesManager(private val context: Context) {
             preferences.remove(HOME_LOCATION_NAME)
             preferences.remove(HOME_LOCATION_LAT)
             preferences.remove(HOME_LOCATION_LON)
+        }
+    }
+    
+    val darkMode: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[DARK_MODE] ?: false
+    }
+    
+    suspend fun setDarkMode(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[DARK_MODE] = enabled
         }
     }
 }

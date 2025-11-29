@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,6 +22,7 @@ fun LocationSearchBar(
     searchResults: List<LocationSearchResult>,
     onLocationSelected: (LocationSearchResult) -> Unit,
     onCurrentLocationClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     isSearching: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -110,6 +112,17 @@ fun LocationSearchBar(
                 Icon(
                     imageVector = Icons.Default.MyLocation,
                     contentDescription = "Aktuální poloha"
+                )
+            }
+            
+            // Tlačítko nastavení
+            FilledTonalIconButton(
+                onClick = onSettingsClick,
+                modifier = Modifier.size(56.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Nastavení"
                 )
             }
         }

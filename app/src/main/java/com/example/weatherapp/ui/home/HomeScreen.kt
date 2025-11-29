@@ -32,6 +32,7 @@ fun HomeScreen(
     onRefreshRequested: () -> Unit,
     onLocationSelected: (Double, Double, String) -> Unit,
     onCurrentLocationClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val weatherData = viewModel.weatherData
@@ -53,6 +54,7 @@ fun HomeScreen(
                 viewModel.clearSearch()
             },
             onCurrentLocationClick = onCurrentLocationClick,
+            onSettingsClick = onSettingsClick,
             isSearching = isSearching,
             modifier = Modifier
                 .fillMaxWidth()
