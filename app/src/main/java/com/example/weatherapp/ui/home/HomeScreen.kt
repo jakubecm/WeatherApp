@@ -6,9 +6,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +23,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
@@ -69,30 +70,16 @@ fun HomeScreen(
                 }
             }
             weatherData != null -> {
-                WeatherContent(
-                    weatherData = weatherData,
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = onRefreshRequested,
                     modifier = Modifier.fillMaxSize()
-                )
-            }
-        }
-        
-        // FAB pro refresh
-        FloatingActionButton(
-            onClick = onRefreshRequested,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-        ) {
-            if (isRefreshing) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Obnovit počasí"
-                )
+                ) {
+                    WeatherContent(
+                        weatherData = weatherData,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
     }
@@ -111,8 +98,8 @@ private fun WeatherContent(
             modifier = Modifier
                 .fillMaxSize()
                 .systemBarsPadding()
-                .verticalScroll(rememberScrollState())
                 .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             // Header - Location
             Text(
