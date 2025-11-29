@@ -79,6 +79,9 @@ dependencies {
     // Material Icons Extended
     implementation(libs.androidx.compose.material.icons.extended)
     
+    // Splash Screen
+    implementation(libs.androidx.core.splashscreen)
+    
     // Retrofit & Networking
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.moshi)
